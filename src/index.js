@@ -9,7 +9,7 @@ dotenv.config({
 
 
 
-
+connectDB()
 
 
 
