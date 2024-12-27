@@ -25,6 +25,22 @@ import userRouter  from "./routes/user.routes.js";
 
 app.use("/api/v1/users", userRouter);
 //http://localhost:3000/api/v1/users/register
+// Error handling middleware
+// app.use((err, req, res, next) => {
+//   if (err instanceof ApiError) {
+//     return res.status(err.statusCode).json({
+//       success: err.success,
+//       message: err.message,
+//       errors: err.errors,
+//       data: err.data,
+//     });
+//   }
+
+//   return res.status(500).json({
+//     success: false,
+//     message: "Internal server error",
+//   });
+// });
 
 export { app };
 // export default app;
