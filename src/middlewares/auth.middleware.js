@@ -37,7 +37,7 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
 
     // const user = await User.findById(userId).select("-password -refreshToken");
     // console.log("User from DB:", user);
-    const user = await User.findById(decodedToken.id).select(
+    const user = await User.findById(decodedToken._id).select(
       "-password -refreshToken"
     );
     // console.log("User ID from decoded token:", decodedToken.id);

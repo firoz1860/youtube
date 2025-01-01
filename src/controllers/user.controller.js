@@ -7,6 +7,7 @@ import {
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -119,38 +120,63 @@ const loginUser = asyncHandler(async (req, res) => {
   // return res
 
   const { email, username, password } = req.body;
-  console.log(email);
+  console.log("Received request data:", { email, username });
 
-  if (!username && !password) {
+  if (!username && !email) {
+    console.error("Username or email is required but missing!");
     throw new ApiError(400, "Please fill all the fields");
   }
+
+  // if (!password) {
+  //   console.error("Password is missing!");
+  //   throw new ApiError(400, "Password is required.");
+  // }
 
   const user = await User.findOne({
     $or: [{ username }, { email }],
   });
+  console.log("User found:", user);
+
   if (!user) {
+    console.error("User not found for the given username/email.");
     throw new ApiError(404, "User not found");
   }
 
   const isPasswordMatched = await user.isPasswordCorrect(password);
+  console.log("Is password matched:", isPasswordMatched);
   if (!isPasswordMatched) {
+    console.error("Invalid credentials: Password is incorrect.");
     throw new ApiError(401, "Invalid credentials");
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    user._id
-  );
+  // const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+  //   user._id
+  // );
+  // console.log("Generated tokens:", { accessToken, refreshToken });
+
+  try {
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+      user._id
+    );
+    console.log("Generated tokens:", { accessToken, refreshToken });
+  } catch (error) {
+    console.error("Error in generating tokens:", error);
+  }
 
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
 
+  console.log("Logged-in user details:", loggedInUser);
+  console.log(res.getHeaders());
+
   const options = {
     httpOnly: true,
     secure: true,
-    // sameSite: "none",
   };
+  console.log("Sending response with tokens and user details.");
   return res
+
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
@@ -499,8 +525,6 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       )
     );
 });
-
-
 
 export {
   registerUser,
