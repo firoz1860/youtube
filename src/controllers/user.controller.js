@@ -35,7 +35,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // return res
 
   const { fullName, email, username, password } = req.body;
-  // console.log("email", email);
+  console.log("email", email);
 
   if (
     [fullName, email, username, password].some((field) => field?.trim() === "")
@@ -96,6 +96,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     username: username.toLowerCase(),
   });
+  console.log("User created:", user);
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -120,10 +121,10 @@ const loginUser = asyncHandler(async (req, res) => {
   // return res
 
   const { email, username, password } = req.body;
-  console.log("Received request data:", { email, username });
+  // console.log("Received request data:", { email, username });
 
   if (!username && !email) {
-    console.error("Username or email is required but missing!");
+    // console.error("Username or email is required but missing!");
     throw new ApiError(400, "Please fill all the fields");
   }
 
@@ -135,17 +136,17 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({
     $or: [{ username }, { email }],
   });
-  console.log("User found:", user);
+  // console.log("User found:", user);
 
   if (!user) {
-    console.error("User not found for the given username/email.");
+    // console.error("User not found for the given username/email.");
     throw new ApiError(404, "User not found");
   }
 
   const isPasswordMatched = await user.isPasswordCorrect(password);
-  console.log("Is password matched:", isPasswordMatched);
+  // console.log("Is password matched:", isPasswordMatched);
   if (!isPasswordMatched) {
-    console.error("Invalid credentials: Password is incorrect.");
+    // console.error("Invalid credentials: Password is incorrect.");
     throw new ApiError(401, "Invalid credentials");
   }
 
@@ -154,50 +155,47 @@ const loginUser = asyncHandler(async (req, res) => {
   // );
   // console.log("Generated tokens:", { accessToken, refreshToken });
 
-  try {
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
       user._id
     );
-    console.log("Generated tokens:", { accessToken, refreshToken });
-  } catch (error) {
-    console.error("Error in generating tokens:", error);
-  }
+    // console.log("Generated tokens:", { accessToken, refreshToken });
+
 
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
 
-  console.log("Logged-in user details:", loggedInUser);
-  console.log(res.getHeaders());
+  // console.log("Logged-in user details:", loggedInUser);
+  // console.log(res.getHeaders());
 
   const options = {
     httpOnly: true,
     secure: true,
   };
-  console.log("Sending response with tokens and user details.");
+  // console.log("Sending response with tokens and user details.");
+
+  // return res.status(200).send("Login successful")
+
   return res
 
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        "User logged in successfully"
-      )
-    );
+    .json(new ApiResponse(200, loggedInUser, "Login successful"));
+    // .json("login successful")
 });
 
 //logout user
 
 const logoutUser = asyncHandler(async (req, res) => {
   console.log("Logout user controller called");
-  console.log("User in request:", req.user);
+  // console.log("User in request:", req.user);
+
+  const userId = req.user?._id;
+  if (!userId) {
+    console.error("User ID not found in req.user");
+    throw new ApiError(400, "Bad Request: User ID missing");
+  }
 
   await User.findByIdAndUpdate(
     req.user._id,
@@ -342,7 +340,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   }
 
   const avatar = await uploadOnCloudinary(avatarLocalPath);
-  if (!avatar) {
+  if (!avatar.url) {
     throw new ApiError(400, "Error while uploading avatar");
   }
   // Retrieve the user's current data (before updating)
@@ -354,7 +352,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   const oldAvatarUrl = existingUser.avatar;
 
   const updatedUser = await User.findByIdAndUpdate(
-    req.user._id,
+    req.user?._id,
     {
       $set: {
         avatar: avatar.url,
@@ -406,124 +404,183 @@ const upadateCoverImage = asyncHandler(async (req, res) => {
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   console.log("Get user channel profile controller called");
 
-  const { username } = req.params;
-  if (!username?.trim()) {
-    throw new ApiError(400, "Username is required");
-  }
-
-  const channel = await User.aggregate([
-    {
-      $match: {
-        username: username.toLowerCase(),
+  try {
+    const { username } = req.params;
+    console.log("Username:", username);
+    if (!username?.trim()) {
+      throw new ApiError(400, "Username is required");
+    }
+  
+    const channel = await User.aggregate([
+      {
+        $match: {
+          username: username?.toLowerCase(),
+        },
       },
-    },
-    {
-      //to get the count of subscribers
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "subscribers",
+      {
+        //to get the count of subscribers
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "channel",
+          as: "subscribers",
+        },
       },
-    },
-    {
-      //to get the count of subscribers
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "subscriber",
-        as: "susbcribedTo",
+      {
+        //to get the count of subscribers
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "subscriber",
+          as: "susbcribedTo",
+        },
       },
-    },
-    {
-      $addFields: {
-        subscriberCount: { $size: "$subscribers" },
-        subscribedToCount: { $size: "$subscribedTo" },
-        isSubscribed: {
-          $cond: {
-            if: {
-              $in: [req.user?._id, "$subscribers.subscriber"],
+      // {
+      //         $addFields: {
+      //             subscribersCount: {
+      //                 $size: "$subscribers"
+      //             },
+      //             channelsSubscribedToCount: {
+      //                 $size: "$subscribedTo"
+      //             },
+      //             isSubscribed: {
+      //                 $cond: {
+      //                     if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+      //                     then: true,
+      //                     else: false
+      //                 }
+      //             }
+      //         }
+      //     },
+      {
+        $addFields: {
+          subscribers: { $ifNull: ["$subscribers", []] }, // Ensure subscribers is an array
+          subscribedTo: { $ifNull: ["$subscribedTo", []] }, // Ensure subscribedTo is an array
+          subscriberCount: { $size: { $ifNull: ["$subscribers", []] } }, // Use $ifNull here as well
+          subscribedToCount: { $size: { $ifNull: ["$subscribedTo", []] } },
+          isSubscribed: {
+            $cond: {
+              if: {
+                $gt: [
+                  {
+                    $size: {
+                      $filter: {
+                        input: { $ifNull: ["$subscribers", []] }, // Ensure input is an array
+                        as: "subscriber",
+                        cond: { $eq: ["$$subscriber.subscriber", req.user?._id] },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+              then: true,
+              else: false,
             },
-            then: true,
-            else: false,
           },
         },
       },
-    },
-    {
-      $project: {
-        username: 1,
-        fullName: 1,
-        avatar: 1,
-        coverImage: 1,
-        subscriberCount: 1,
-        subscribedToCount: 1,
-        isSubscribed: 1,
-        email: 1,
+      {
+        $project: {
+          username: 1,
+          fullName: 1,
+          avatar: 1,
+          coverImage: 1,
+          subscriberCount: 1,
+          subscribedToCount: 1,
+          isSubscribed: 1,
+          email: 1,
+        },
       },
-    },
-  ]);
-  console.log("channel:", channel);
-  if (!channel?.length) {
-    throw new ApiError(404, "Channel not found");
+    ]);
+    console.log("channel:", channel);
+    if (!channel?.length) {
+      console.error("Channel not found");
+      throw new ApiError(404, "Channel not found");
+    }
+    console.log("Returning response for channel:", channel[0]);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, channel[0], "Channel fetched successfully"));
+  } catch (error) {
+    console.error("Error in getUserChannelProfile:", error.message);
+    throw new ApiError(500, error.message || "Internal Server Error");
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, channel[0], "Channel fetched successfully"));
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-  const user = await User.aggregate([
-    {
-      $match: {
-        _id: mongoose.Types.ObjectId(req.user._id),
+  console.log("Get watch history controller called");
+  try {
+    const user = await User.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(req.user._id),
+        },
       },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "watchHistory",
-        foreignField: "_id",
-        as: "watchHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
-                {
-                  $project: {
-                    fullName: 1,
-                    username: 1,
-                    avatar: 1,
+      {
+        $lookup: {
+          from: "videos",
+          localField: "watchHistory",
+          foreignField: "_id",
+          as: "watchHistory",
+          pipeline: [
+            {
+              $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                  {
+                    $project: {
+                      fullName: 1,
+                      username: 1,
+                      avatar: 1,
+                    },
                   },
-                },
-              ],
-            },
-          },
-          {
-            $addFields: {
-              owner: {
-                $first: "$owner",
+                ],
               },
             },
-          },
-        ],
+            {
+              $addFields: {
+                owner: {
+                  $first: "$owner",
+                },
+              },
+            },
+          ],
+        },
       },
-    },
-  ]);
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        user[0].watchHistory,
-        "Watch history fetched successfully"
-      )
-    );
+      {
+        $addFields: {
+          watchHistory: { $ifNull: ["$watchHistory", []] }, // Ensures watchHistory is always an array
+        },
+      },
+    ]);
+  
+    if (!user || user.length === 0) {
+      return res
+        .status(404)
+        .json(new ApiResponse(404, null, "User not found or no watch history"));
+    }
+  
+    console.log("User watch history:", user[0].watchHistory);
+  
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          user[0].watchHistory,
+          "Watch history fetched successfully"
+        )
+      );
+  } catch (error) {
+    console.error("Error fetching watch history:", error.message);
+    return res
+      .status(500)
+      .json(new ApiResponse(500, null, "Failed to fetch watch history"));
+  }
 });
 
 export {
