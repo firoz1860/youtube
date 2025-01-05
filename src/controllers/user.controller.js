@@ -23,7 +23,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  console.log("Register user controller called");
+  // console.log("Register user controller called");
   // get user details from frontend
   // validation - not empty
   // check if user already exists: username, email
@@ -35,7 +35,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // return res
 
   const { fullName, email, username, password } = req.body;
-  console.log("email", email);
+  // console.log("email", email);
 
   if (
     [fullName, email, username, password].some((field) => field?.trim() === "")
@@ -57,7 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
     $or: [{ username }, { email }],
   });
   if (existedUser) {
-    console.log("User with email or username already exists");
+    // console.log("User with email or username already exists");
     throw new ApiError(409, "User with email or username already exists");
   }
 
@@ -96,7 +96,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     username: username.toLowerCase(),
   });
-  console.log("User created:", user);
+  // console.log("User created:", user);
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -110,7 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-  console.log("Login user controller called");
+  // console.log("Login user controller called");
   // get user details from frontend
   // validation - not empty
   // check if user exists: username, email
@@ -188,12 +188,12 @@ const loginUser = asyncHandler(async (req, res) => {
 //logout user
 
 const logoutUser = asyncHandler(async (req, res) => {
-  console.log("Logout user controller called");
+  // console.log("Logout user controller called");
   // console.log("User in request:", req.user);
 
   const userId = req.user?._id;
   if (!userId) {
-    console.error("User ID not found in req.user");
+    // console.error("User ID not found in req.user");
     throw new ApiError(400, "Bad Request: User ID missing");
   }
 
@@ -225,7 +225,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 //refresh access token
 
 const resfreshAccessToken = asyncHandler(async (req, res) => {
-  console.log("Refresh access token controller called");
+  // console.log("Refresh access token controller called");
 
   const incomingRefreshToken =
     req.cookies.refreshToken || req.body.refreshToken;
@@ -274,7 +274,7 @@ const resfreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
-  console.log("Change password controller called");
+  // console.log("Change password controller called");
 
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {
@@ -300,7 +300,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-  console.log("Get current user controller called");
+  // console.log("Get current user controller called");
   // console.log("User in request:", req.user);
 
   return res
@@ -309,7 +309,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-  console.log("Update accout details controller called");
+  // console.log("Update accout details controller called");
   const { fullName, email } = req.body;
   if (!fullName || !email) {
     throw new ApiError(400, "All fields are required");
@@ -332,7 +332,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 });
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
-  console.log("Upadte user avatar controller called");
+  // console.log("Upadte user avatar controller called");
 
   const avatarLocalPath = req.file?.path;
   if (!avatarLocalPath) {
@@ -362,7 +362,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   ).select("-password");
 
   if (oldAvatarUrl && oldAvatarUrl !== avatar.url) {
-    console.log("Deleting old avatar image from cloudinary...");
+    // console.log("Deleting old avatar image from cloudinary...");
     await deleteFromCloudinary(oldAvatarUrl);
   }
 
@@ -374,7 +374,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 });
 
 const upadateCoverImage = asyncHandler(async (req, res) => {
-  console.log("Update cover image controller called");
+  // console.log("Update cover image controller called");
 
   const coverImageLocalPath = req.file?.path;
   if (!coverImageLocalPath) {
@@ -402,7 +402,7 @@ const upadateCoverImage = asyncHandler(async (req, res) => {
 });
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-  console.log("Get user channel profile controller called");
+  // console.log("Get user channel profile controller called");
 
   try {
     const { username } = req.params;
@@ -493,12 +493,12 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
       },
     ]);
-    console.log("channel:", channel);
+    // console.log("channel:", channel);
     if (!channel?.length) {
       console.error("Channel not found");
       throw new ApiError(404, "Channel not found");
     }
-    console.log("Returning response for channel:", channel[0]);
+    // console.log("Returning response for channel:", channel[0]);
     return res
       .status(200)
       .json(new ApiResponse(200, channel[0], "Channel fetched successfully"));
@@ -509,7 +509,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-  console.log("Get watch history controller called");
+  // console.log("Get watch history controller called");
   try {
     const user = await User.aggregate([
       {
@@ -564,7 +564,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(404, null, "User not found or no watch history"));
     }
   
-    console.log("User watch history:", user[0].watchHistory);
+    // console.log("User watch history:", user[0].watchHistory);
   
     return res
       .status(200)
@@ -576,7 +576,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    console.error("Error fetching watch history:", error.message);
+    // console.error("Error fetching watch history:", error.message);
     return res
       .status(500)
       .json(new ApiResponse(500, null, "Failed to fetch watch history"));

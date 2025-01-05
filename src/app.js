@@ -4,6 +4,11 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
+// app.use((req, res, next) => {
+//   console.log(`Incoming request: ${req.method} ${req.url}`);
+//   next();
+// });
+
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN,
@@ -16,16 +21,17 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(express.static("public"));
 
-
 //routes import
-import userRouter  from "./routes/user.routes.js";
-
+import userRouter from "./routes/user.routes.js";
+import videoRouter from "./routes/video.routes.js";
+import commentRouter from "./routes/comment.routes.js";
 
 //router declaration
-
 app.use("/api/v1/users", userRouter);
-//http://localhost:3000/api/v1/users/register
-
+app.use("/api/v1/videos", videoRouter);
+app.use("/api/v1/comments", (req, res, next) => {
+  console.log("commentRouter base route hit");
+  next();
+}, commentRouter); // Corrected route
 
 export { app };
-// export default app;
