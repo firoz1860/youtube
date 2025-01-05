@@ -17,9 +17,13 @@ const commentSchema = new Schema(
       ref: "User",
       required: true, // Ensure comments always have an owner
     },
-    likesCount: {
+    // likesCount: {
+    //   type: Number,
+    //   default: 0, // Default to 0 for new comments
+    // },
+    likeCount: {
       type: Number,
-      default: 0, // Default to 0 for new comments
+      default: 0,
     },
     repliesCount: {
       type: Number,
