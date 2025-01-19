@@ -45,6 +45,16 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
+    subscriberCount: {
+      type: Number,
+      default: 0,
+    },
+    subscribers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,
