@@ -72,104 +72,159 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-  const { channelId } = req.params;
-
-  try {
-    if (!isValidObjectId(channelId)) {
-      throw new ApiError(400, "Invalid channel ID");
-    }
-
-    const channel = await User.findById(channelId);
-
-    if (!channel) {
-      throw new ApiError(404, "channel not found");
-    }
-
-    const subscribers = await Subscription.find({ channel: channelId })
-      .populate("subscriber", "username avatar")
-      .sort({ createdAt: -1 });
-
-    if (!subscribers || subscribers.length === 0) {
-      return res
-        .status(404)
-        .json(
-          new ApiResponse(404, [], "No subscribers found for this channel")
-        );
-    }
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          subscribers,
-          "Channel subscribers retrieved successfully"
-        )
-      );
-  } catch (error) {
-    const statusCode = error instanceof ApiError ? error.statusCode : 500;
-    return res
-      .status(statusCode)
-      .json(
-        new ApiResponse(
-          statusCode,
-          "Failed to retrieve subscribers",
-          error.message
-        )
-      );
+  const {channelId} = req.params
+  if(!channelId){
+      throw new ApiError(401,"Channel Id is Missing");
   }
-});
+  
+  const subscriberList = await Subscription.aggregate(
+      [
+          {
+            '$match': {
+              'channel': new mongoose.Types.ObjectId(String(channelId))
+            }
+          }, {
+            '$lookup': {
+              'from': 'users', 
+              'localField': 'subscriber', 
+              'foreignField': '_id', 
+              'as': 'SubscriberList', 
+              'pipeline': [
+                {
+                  '$project': {
+                    'fullName': 1, 
+                    'username': 1, 
+                    'avatar': 1
+                  }
+                }
+              ]
+            }
+          }, {
+            '$addFields': {
+              'subscriber': {
+                '$first': '$SubscriberList'
+              }
+            }
+          }, {
+            '$project': {
+              'SubscriberList': 0
+            }
+          }, {
+            '$group': {
+              '_id': '$channel', 
+              'subscriber': {
+                '$push': '$subscriber'
+              }
+            }
+          }, {
+            '$lookup': {
+              'from': 'users', 
+              'localField': '_id', 
+              'foreignField': '_id', 
+              'as': 'ChannelDetails', 
+              'pipeline': [
+                {
+                  '$project': {
+                    'fullName': 1, 
+                    'username': 1, 
+                    'avatar': 1
+                  }
+                }
+              ]
+            }
+          }, {
+            '$addFields': {
+              'ChannelDetails': {
+                '$first': '$ChannelDetails'
+              }
+            }
+          }
+        ]
+  );
+
+  if(!subscriberList.length){
+      throw new ApiError(401,"No Subscribers Found")
+  }
+  return res.status(200).json(new ApiResponse(200,subscriberList[0]));
+
+
+})
 
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-  const { subscriberId } = req.params;
-
-  try {
-    if (!isValidObjectId(subscriberId)) {
-      throw new ApiError(404, "Invalid channel ID");
-    }
-
-    const subscriber = await User.findById(subscriberId);
-    if (!subscriber) {
-      throw new ApiError(404, "Subscriber not found");
-    }
-
-    const subscriptions = await Subscription.find({ subscriber: subscriberId })
-      .populate("channel", "username avatar")
-      .sort({ createdAt: -1 }); // Optional: Sort by most recent subscriptions
-
-    if (!subscriptions || subscriptions.length === 0) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, [], "No subscriptions found for this user"));
-    }
-
-    const subscribedChannels = await Subscription.map((sub) => ({
-      _id: sub.channel._id,
-      username: sub.channel.username,
-      avatar: sub.channel.avatar,
-    }));
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          subscribedChannels,
-          "Subscribed channels retrieved successfully"
-        )
-      );
-  } catch (error) {
-    const statusCode = error instanceof ApiError ? error.statusCode : 500;
-    return res
-      .status(statusCode)
-      .json(
-        new ApiResponse(
-          statusCode,
-          "Failed to retrieve subscriptions",
-          error.message
-        )
-      );
+  const { subscriberId } = req.params
+  if(!subscriberId){
+      throw new ApiError(401,"Subscriber Id is Missing")
   }
-});
+  const channelList = await Subscription.aggregate(
+      [
+          {
+            '$match': {
+              'subscriber': new mongoose.Types.ObjectId(String(subscriberId))
+            }
+          }, {
+            '$lookup': {
+              'from': 'users', 
+              'localField': 'channel', 
+              'foreignField': '_id', 
+              'as': 'ChannelList', 
+              'pipeline': [
+                {
+                  '$project': {
+                    'fullName': 1, 
+                    'username': 1, 
+                    'avatar': 1
+                  }
+                }
+              ]
+            }
+          }, {
+            '$addFields': {
+              'channels': {
+                '$first': '$ChannelList'
+              }
+            }
+          }, {
+            '$project': {
+              'ChannelList': 0
+            }
+          }, {
+            '$group': {
+              '_id': '$subscriber', 
+              'channels': {
+                '$push': '$channels'
+              }
+            }
+          }, {
+            '$lookup': {
+              'from': 'users', 
+              'localField': '_id', 
+              'foreignField': '_id', 
+              'as': 'SubscriberDetails', 
+              'pipeline': [
+                {
+                  '$project': {
+                    'fullName': 1, 
+                    'username': 1, 
+                    'avatar': 1
+                  }
+                }
+              ]
+            }
+          }, {
+            '$addFields': {
+              'SubscriberDetails': {
+                '$first': '$SubscriberDetails'
+              }
+            }
+          }
+        ]
+  );
+
+  if(!channelList.length){
+      throw new ApiError(401,"No Channels Found")
+  }
+  return res.status(200).json(new ApiResponse(200,channelList[0]));
+
+})
 
 export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
