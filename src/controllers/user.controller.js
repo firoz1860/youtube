@@ -224,7 +224,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 //refresh access token
 
-const resfreshAccessToken = asyncHandler(async (req, res) => {
+const refreshAccessToken = asyncHandler(async (req, res) => {
   // console.log("Refresh access token controller called");
 
   const incomingRefreshToken =
@@ -587,7 +587,7 @@ export {
   registerUser,
   loginUser,
   logoutUser,
-  resfreshAccessToken,
+  refreshAccessToken,
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetails,
