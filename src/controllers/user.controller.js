@@ -373,7 +373,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     );
 });
 
-const upadateCoverImage = asyncHandler(async (req, res) => {
+const updateCoverImage = asyncHandler(async (req, res) => {
   // console.log("Update cover image controller called");
 
   const coverImageLocalPath = req.file?.path;
@@ -592,7 +592,7 @@ export {
   getCurrentUser,
   updateAccountDetails,
   updateUserAvatar,
-  upadateCoverImage,
+  updateCoverImage,
   getUserChannelProfile,
   getWatchHistory,
 };
