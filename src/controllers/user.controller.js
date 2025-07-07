@@ -592,7 +592,7 @@ export {
   getCurrentUser,
   updateAccountDetails,
   updateUserAvatar,
-  updateCoverImage,
+  updateUserCoverImage,
   getUserChannelProfile,
   getWatchHistory,
 };
