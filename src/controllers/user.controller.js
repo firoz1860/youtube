@@ -373,7 +373,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     );
 });
 
-const updateCoverImage = asyncHandler(async (req, res) => {
+const updateUserCoverImage = asyncHandler(async (req, res) => {
   // console.log("Update cover image controller called");
 
   const coverImageLocalPath = req.file?.path;
